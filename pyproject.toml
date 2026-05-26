@@ -1,14 +1,37 @@
 [project]
 name = "rejection-sampler"
 version = "0.1.0"
-description = "Add your description here"
+description = "A statistical computing toolkit for validating proposal distributions and computing optimal rejection-sampling constants."
 readme = "README.md"
 authors = [
-    { name = "Hao", email = "hank86030@gmail.com" }
+    { name = "Pin Hao Wang", email = "hank86030@gmail.com" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+
+keywords = [
+  "rejection-sampling",
+  "sampling",
+  "computational-statistics",
+  "statistical-computing",
+  "scipy",
+  "sympy",
+  "probability",
+  "pdf",
+  "numerical-optimization"
+]
+
+dependencies = [
+    "numpy>=2.4.6",
+    "scipy>=1.17.1",
+    "sympy>=1.14.0",
+]
 
 [build-system]
 requires = ["uv_build>=0.9.25,<0.10.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
+
