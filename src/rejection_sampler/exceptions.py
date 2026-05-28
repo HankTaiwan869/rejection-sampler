@@ -15,3 +15,7 @@ class SympyFailedError(RejectionSamplerError):
 
 class ScipyFailedError(RejectionSamplerError):
     """Raised when Scipy evaluation failed."""
+
+
+class BoundsNotProvidedError(RejectionSamplerError):
+    """Raised when bounds are not provided for infinite support pdfs."""

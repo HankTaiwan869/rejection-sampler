@@ -6,6 +6,7 @@ import sympy as sp
 from scipy import integrate, optimize
 
 from rejection_sampler.exceptions import (
+    BoundsNotProvidedError,
     PDFValidationError,
     ScipyFailedError,
     SympyFailedError,
@@ -39,10 +40,10 @@ def find_optimal_M(
     target_support: tuple[float, float],
     proposal_pdf: PDF,
     proposal_support: tuple[float, float],
-    limit: int = 200,
     error: float = 1e-6,
-    maxiter: int = 1000,
     bounds: None | tuple[float, float] = None,
+    right_tail: None | float = None,
+    left_tail: None | float = None,
 ) -> float:
     """
     Validate a rejection-sampling setup and compute the optimal rejection
@@ -88,9 +89,6 @@ def find_optimal_M(
     bounds : tuple[float, float] | None, default=None
         Possible area where max of f/g occurs.
         Provide this for complicated functions with infinite support for better accuracy.
-
-    maxiter : int, default=1000
-        Maximum number of iterations used by SciPy's differential evolution optimizer.
 
     limit : int, default=200
         Increase this value if scipy.integration.quad errors.
@@ -194,7 +192,7 @@ def find_optimal_M(
                 lambda t: float(f(t)),
                 a,
                 b,
-                limit=limit,
+                limit=200,
             )
         except Exception:
             return False
@@ -214,9 +212,6 @@ def find_optimal_M(
         # can only reliably check Sympy inputs
         # callable inputs will be checked when evaluating M
         a, b = target.support
-
-        def _is_bad_value(v: float) -> bool:
-            return not np.isfinite(v) or v < 0
 
         if target.is_symbolic and proposal.is_symbolic:
             ratio = sp.simplify(target.func / proposal.func)
@@ -250,48 +245,37 @@ def find_optimal_M(
         f = _as_callable(target)
         g = _as_callable(proposal)
 
-        def ratio_at(t: float) -> float:
+        def neg_ratio(t: float) -> float:
             target_value = float(f(t))
             proposal_value = float(g(t))
 
-            if proposal_value <= 0:
-                if target_value <= 0:
-                    return 0.0
+            if proposal_value <= 0 or target_value <= 0:
                 return float("inf")
 
-            return target_value / proposal_value
+            return -target_value / proposal_value
 
-        try:
-            eps_values = [10.0**-k for k in range(3, 10)]
+        # Case 1: finite boundaries
+        if np.isfinite(a) and np.isfinite(b):
+            result = optimize.differential_evolution(
+                lambda z: neg_ratio(z[0]),
+                bounds=[(a, b)],
+                maxiter=1000,
+            )
 
-            # finite left boundary: x -> a+
-            if a != -float("inf"):
-                for eps in eps_values:
-                    if _is_bad_value(ratio_at(a + eps)):
-                        return False
+            return result.success
+        # Case 2: infinite boundaries
+        if bounds is None:
+            raise BoundsNotProvidedError(
+                "Please provide sufficiently large tail bounds for numerical "
+                "optimization. Or try using Sympy expression for analytic optimization."
+            )
 
-            # finite right boundary: x -> b-
-            if b != float("inf"):
-                for eps in eps_values:
-                    if _is_bad_value(ratio_at(b - eps)):
-                        return False
-
-            # left infinite boundary: x -> -inf
-            if a == -float("inf"):
-                for t in [-10.0, -100.0, -1000.0]:
-                    if _is_bad_value(ratio_at(t)):
-                        return False
-
-            # right infinite boundary: x -> +inf
-            if b == float("inf"):
-                for t in [10.0, 100.0, 1000.0]:
-                    if _is_bad_value(ratio_at(t)):
-                        return False
-
-        except Exception:
-            return False
-
-        return True
+        result = optimize.differential_evolution(
+            lambda z: neg_ratio(z[0]),
+            bounds=[bounds],
+            maxiter=1000,
+        )
+        return result.success
 
     def _check_with_sympy(proposal: _PDF, target: _PDF) -> float:
         if not proposal.is_symbolic or not target.is_symbolic:
@@ -340,15 +324,16 @@ def find_optimal_M(
         a, b = target.support
 
         def neg_ratio(t: float) -> float:
+            target_value = float(f(t))
             proposal_value = float(g(t))
 
-            if proposal_value <= 0:
+            if proposal_value <= 0 or target_value <= 0:
                 return float("inf")
 
-            return -float(f(t)) / proposal_value
+            return -target_value / proposal_value
 
         def _valid_M(value: float) -> bool:
-            return value > 0 and np.isfinite(value)
+            return value >= 1 - error and np.isfinite(value)
 
         # Case 1: finite target support
         if np.isfinite(a) and np.isfinite(b):
@@ -380,7 +365,7 @@ def find_optimal_M(
             result = optimize.differential_evolution(
                 lambda z: neg_ratio(z[0]),
                 bounds=[(a, b)],
-                maxiter=maxiter,
+                maxiter=1000,
             )
 
             if result.success:
@@ -394,37 +379,28 @@ def find_optimal_M(
 
             raise ScipyFailedError
 
-        # Case 2: infinite support, first try unbounded scalar optimization.
-        # because `bounds` can't always be specified easily
-        result = optimize.minimize_scalar(neg_ratio)
-
-        if result.success:
-            M = -float(result.fun)
-            if _valid_M(M):
-                return M
-
-        # Case 3: infinite support fallback requires user-provided finite bounds.
+        # Case 2: infinite support requires user-provided finite bounds.
         if bounds is None:
-            raise ScipyFailedError(
-                "Unbounded numerical optimization failed. Provide finite bounds "
-                "around the likely maximum of target_pdf / proposal_pdf."
+            raise BoundsNotProvidedError(
+                "Please provide sufficiently large tail bounds for numerical "
+                "optimization. Or try using Sympy expression for analytic optimization."
             )
 
         result = optimize.differential_evolution(
             lambda z: neg_ratio(z[0]),
             bounds=[bounds],
-            maxiter=maxiter,
+            maxiter=1000,
         )
 
         if not result.success:
             raise ScipyFailedError(
-                "Differential Evolution algorithm failed. Try increasing maxiter."
+                "Try using Sympy expressions for analytic optimization."
             )
 
         M = -float(result.fun)
 
         if not _valid_M(M):
-            raise ScipyFailedError(f"Return invalid M = {M}")
+            raise ScipyFailedError("Return invalid M")
 
         return float(M)
 

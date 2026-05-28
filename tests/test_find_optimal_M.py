@@ -168,7 +168,6 @@ def test_callable_oscillating_pdf_global_maximum_is_found():
         target_support=(0, 1),
         proposal_pdf=proposal_pdf,
         proposal_support=(0, 1),
-        maxiter=2000,
     )
 
     assert M == pytest.approx(1.5, rel=1e-4)
@@ -360,7 +359,6 @@ def test_scipy_generalized_error_vs_cauchy_returns_finite_M():
         proposal_pdf=proposal_pdf,
         proposal_support=(-math.inf, math.inf),
         bounds=(-20, 20),
-        maxiter=2000,
     )
 
     assert M > 0
