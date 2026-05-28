@@ -42,8 +42,6 @@ def find_optimal_M(
     proposal_support: tuple[float, float],
     error: float = 1e-6,
     bounds: None | tuple[float, float] = None,
-    right_tail: None | float = None,
-    left_tail: None | float = None,
 ) -> float:
     """
     Validate a rejection-sampling setup and compute the optimal rejection
@@ -90,9 +88,6 @@ def find_optimal_M(
         Possible area where max of f/g occurs.
         Provide this for complicated functions with infinite support for better accuracy.
 
-    limit : int, default=200
-        Increase this value if scipy.integration.quad errors.
-
     Returns
     -------
     float
@@ -114,8 +109,8 @@ def find_optimal_M(
 
     Callable functions example:
 
-    >>> target = lambda x: np.exp(-x)
-    >>> proposal = lambda x: 0.5 * np.exp(-x / 2)
+    >>> def target(x): return np.exp(-x)
+    >>> def proposal(x): return 0.5 * np.exp(-x / 2)
     >>> find_optimal_M(
     ...     target,
     ...     (0, float("inf")),
@@ -123,6 +118,11 @@ def find_optimal_M(
     ...     (0, float("inf")),
     ...     bounds=(0, 10),
     ... )
+
+    Note
+    ---------
+    Use numpy for math expressions. Avoid using built-in math package.
+
     """
 
     x = sp.Symbol("x", real=True)
@@ -174,7 +174,7 @@ def find_optimal_M(
                 pass
 
         # Check non-negativity numerically on finite support
-        if all(np.isfinite(v) for v in pdf.support):
+        if np.isfinite(a) and np.isfinite(b):
             try:
                 result = optimize.minimize_scalar(
                     lambda t: float(f(t)),
@@ -209,20 +209,19 @@ def find_optimal_M(
         return p_left <= t_left and p_right >= t_right
 
     def _check_boundaries(target: _PDF, proposal: _PDF) -> bool:
-        # can only reliably check Sympy inputs
-        # callable inputs will be checked when evaluating M
+
         a, b = target.support
 
-        if target.is_symbolic and proposal.is_symbolic:
-            ratio = sp.simplify(target.func / proposal.func)
+        try:
+            if target.is_symbolic and proposal.is_symbolic:
+                ratio = sp.simplify(target.func / proposal.func)
 
-            checks = [
-                (a, "+"),
-                (b, "-"),
-            ]
+                checks = [
+                    (a, "+"),
+                    (b, "-"),
+                ]
 
-            for boundary, direction in checks:
-                try:
+                for boundary, direction in checks:
                     if boundary == -float("inf"):
                         value = sp.limit(ratio, x, -sp.oo)
                     elif boundary == float("inf"):
@@ -236,11 +235,9 @@ def find_optimal_M(
                     if value.is_real is False:
                         return False
 
-                # fall back to Scipy for numerical evaluation
-                except Exception:
-                    continue
-
-            return True
+                return True
+        except Exception:
+            pass
 
         f = _as_callable(target)
         g = _as_callable(proposal)
