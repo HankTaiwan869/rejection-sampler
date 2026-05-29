@@ -1,6 +1,6 @@
 [project]
 name = "rejection-sampler"
-version = "0.1.0"
+version = "0.1.1"
 description = "A statistical computing toolkit for validating proposal distributions and computing optimal rejection-sampling constants."
 readme = "README.md"
 authors = [

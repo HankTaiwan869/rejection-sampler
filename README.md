@@ -47,8 +47,6 @@ M = find_optimal_M(
 
 print(M)
 ```
-## Note
-When writing mathemtatical expressions (eg. `exp`, `log`, `sqrt`, `inf`), use `numpy` instead of the built-in `math` module.
 
 # Infinite support
 For numerical inputs with infinite support, provide finite optimization bounds:
@@ -81,7 +79,10 @@ print(M)
 - `proposal_pdf`: proposal probability density function, either callable or SymPy expression
 - `proposal_support`: support of the proposal PDF
 - `error`: numerical tolerance for validation
-- `bounds`: finite search interval for numerical optimization with infinite support
+- `bounds`: search interval for numerical optimization for pdfs with infinite support
 
+# Note
+- When writing mathemtatical expressions (eg. `exp`, `log`, `sqrt`, `inf`), use `numpy` instead of the built-in `math` module.
+- Provide a *sufficiently large* `bounds` to ensure correctness of optimization and prevent finding local optima.
 # License
 This project is licensed under the MIT License.

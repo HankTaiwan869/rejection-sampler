@@ -85,8 +85,9 @@ def find_optimal_M(
         - floating-point comparisons
 
     bounds : tuple[float, float] | None, default=None
-        Possible area where max of f/g occurs.
-        Provide this for complicated functions with infinite support for better accuracy.
+        Numerical search intervals for pdfs with infinite support.
+        Provide a sufficiently large bound to prevent finding local optima.
+        A larger bound could help with unexpected result.
 
     Returns
     -------
@@ -263,7 +264,7 @@ def find_optimal_M(
         # Case 2: infinite boundaries
         if bounds is None:
             raise BoundsNotProvidedError(
-                "Please provide sufficiently large tail bounds for numerical "
+                "Please provide sufficiently large bounds for numerical "
                 "optimization. Or try using Sympy expression for analytic optimization."
             )
 
@@ -379,7 +380,7 @@ def find_optimal_M(
         # Case 2: infinite support requires user-provided finite bounds.
         if bounds is None:
             raise BoundsNotProvidedError(
-                "Please provide sufficiently large tail bounds for numerical "
+                "Please provide sufficiently large bounds for numerical "
                 "optimization. Or try using Sympy expression for analytic optimization."
             )
 
