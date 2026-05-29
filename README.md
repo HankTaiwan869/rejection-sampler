@@ -1,10 +1,17 @@
 # rejection-sampler
-A small Python package for validating rejection sampling setups and computing the optimal rejection constant (M).
-The package supports both callable Python functions and symbolic SymPy expressions for target and proposal PDFs.
+A small Python package for validating rejection sampling setups and computing the optimal rejection constant (`M`).
+The package supports both callable Python functions and symbolic SymPy expressions for target and proposal probability density functions (PDF).
+
+In rejection sampling, `M` is the smallest constant such that, for all x in the target support:
+
+target_pdf(x) <= `M` * proposal_pdf(x)
+
 # Installation
 ```bash
 pip install rejection-sampler
-# or 
+```
+or
+```bash
 uv add rejection-sampler
 ```
 # Usage
@@ -82,7 +89,8 @@ print(M)
 - `bounds`: search interval for numerical optimization for pdfs with infinite support
 
 # Note
-- When writing mathemtatical expressions (eg. `exp`, `log`, `sqrt`, `inf`), use `numpy` instead of the built-in `math` module.
-- Provide a *sufficiently large* `bounds` to ensure correctness of optimization and prevent finding local optima.
+- When writing mathematical expressions (eg. `exp`, `log`, `sqrt`, `inf`), use `numpy` instead of the built-in `math` module.
+- For infinite-support callable inputs, choose **sufficiently large** `bounds`. `bounds` that are too small may miss the global optimum.
+
 # License
 This project is licensed under the MIT License.
