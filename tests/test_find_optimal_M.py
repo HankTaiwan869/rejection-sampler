@@ -1,6 +1,6 @@
-import math
 import warnings
 
+import numpy as np
 import pytest
 import sympy as sp
 
@@ -75,21 +75,21 @@ def test_callable_triangular_vs_uniform_returns_known_M():
 
 
 def test_callable_normal_vs_cauchy_unbounded_support_returns_known_M():
-    sqrt_2pi = math.sqrt(2 * math.pi)
+    sqrt_2pi = np.sqrt(2 * np.pi)
 
     def target_pdf(x):
-        return math.exp(-0.5 * x * x) / sqrt_2pi
+        return np.exp(-0.5 * x * x) / sqrt_2pi
 
     def proposal_pdf(x):
-        return 1.0 / (math.pi * (1 + x * x))
+        return 1.0 / (np.pi * (1 + x * x))
 
-    expected_M = math.sqrt(2 * math.pi) * math.exp(-0.5)
+    expected_M = np.sqrt(2 * np.pi) * np.exp(-0.5)
 
     M = find_optimal_M(
         target_pdf=target_pdf,
-        target_support=(-math.inf, math.inf),
+        target_support=(-np.inf, np.inf),
         proposal_pdf=proposal_pdf,
-        proposal_support=(-math.inf, math.inf),
+        proposal_support=(-np.inf, np.inf),
         bounds=(-10.0, 10.0),
     )
 
@@ -98,16 +98,16 @@ def test_callable_normal_vs_cauchy_unbounded_support_returns_known_M():
 
 def test_callable_exponential_vs_laplace_returns_known_M():
     def target_pdf(x):
-        return math.exp(-x) if x >= 0 else 0.0
+        return np.exp(-x) if x >= 0 else 0.0
 
     def proposal_pdf(x):
-        return 0.5 * math.exp(-abs(x))
+        return 0.5 * np.exp(-abs(x))
 
     M = find_optimal_M(
         target_pdf=target_pdf,
-        target_support=(0, math.inf),
+        target_support=(0, np.inf),
         proposal_pdf=proposal_pdf,
-        proposal_support=(-math.inf, math.inf),
+        proposal_support=(-np.inf, np.inf),
         bounds=(0, 20),
     )
 
@@ -157,7 +157,7 @@ def test_callable_boundary_maximum_is_found():
 def test_callable_oscillating_pdf_global_maximum_is_found():
     def target_pdf(x):
         if 0 <= x <= 1:
-            return 1.0 + 0.5 * math.sin(20 * math.pi * x)
+            return 1.0 + 0.5 * np.sin(20 * np.pi * x)
         return 0.0
 
     def proposal_pdf(x):
@@ -300,14 +300,14 @@ def test_sympy_skew_normal_vs_cauchy_returns_finite_M():
 
     M = find_optimal_M(
         target_pdf=target_pdf,
-        target_support=(-math.inf, math.inf),
+        target_support=(-np.inf, np.inf),
         proposal_pdf=proposal_pdf,
-        proposal_support=(-math.inf, math.inf),
+        proposal_support=(-np.inf, np.inf),
         bounds=(-10, 10),
     )
 
     assert M > 0
-    assert math.isfinite(M)
+    assert np.isfinite(M)
 
 
 def test_sympy_inverse_gaussian_vs_exponential_returns_finite_M():
@@ -329,14 +329,14 @@ def test_sympy_inverse_gaussian_vs_exponential_returns_finite_M():
 
         M = find_optimal_M(
             target_pdf=target_pdf,
-            target_support=(0, math.inf),
+            target_support=(0, np.inf),
             proposal_pdf=proposal_pdf,
-            proposal_support=(0, math.inf),
+            proposal_support=(0, np.inf),
             bounds=(1e-6, 30),
         )
 
     assert M > 0
-    assert math.isfinite(M)
+    assert np.isfinite(M)
 
 
 def test_scipy_generalized_error_vs_cauchy_returns_finite_M():
@@ -351,15 +351,15 @@ def test_scipy_generalized_error_vs_cauchy_returns_finite_M():
 
     # proposal: Cauchy(0, 1)
     def proposal_pdf(x):
-        return 1.0 / (math.pi * (1 + x * x))
+        return 1.0 / (np.pi * (1 + x * x))
 
     M = find_optimal_M(
         target_pdf=target_pdf,
-        target_support=(-math.inf, math.inf),
+        target_support=(-np.inf, np.inf),
         proposal_pdf=proposal_pdf,
-        proposal_support=(-math.inf, math.inf),
+        proposal_support=(-np.inf, np.inf),
         bounds=(-20, 20),
     )
 
     assert M > 0
-    assert math.isfinite(M)
+    assert np.isfinite(M)
